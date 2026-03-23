@@ -3,6 +3,7 @@ import { createServer } from "http"
 import { Server } from 'socket.io'
 import cors from "cors"
 import cookieParser from 'cookie-parser'
+import authRoutes from './routes/auth.routes.js'
 import dotenv from 'dotenv'
 dotenv.config()
 
@@ -32,6 +33,8 @@ app.use(cookieParser())
 app.get('/', (req, res) => {
   res.json({ message: 'Chat app server is running' })
 })
+
+app.use('/api/auth', authRoutes)
 
 // Socket.io connection (we will expand this later)
 io.on('connection', (socket) => {
