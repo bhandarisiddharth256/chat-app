@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.routes.js'
 import { updateUserOnlineStatus } from './models/user.model.js'
 import { createMessage } from './models/message.model.js'
 import { createReport } from './models/report.model.js'
+import messageRoutes from './routes/message.routes.js'
 import dotenv from 'dotenv'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -64,6 +65,7 @@ app.get('/', (req, res) => {
 })
 
 app.use('/api/auth', authRoutes)
+app.use('/api/messages', messageRoutes)
 
 io.on('connection', async (socket) => {
   const userId = socket.userId
