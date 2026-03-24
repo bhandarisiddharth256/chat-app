@@ -6,7 +6,7 @@ import cors from "cors"
 import cookieParser from 'cookie-parser'
 import authRoutes from './routes/auth.routes.js'
 import { updateUserOnlineStatus } from './models/user.model.js'
-import { createMessage } from './models/message.model.js'
+import { createMessage , editMessage, deleteMessage } from './models/message.model.js'
 import { createReport } from './models/report.model.js'
 import messageRoutes from './routes/message.routes.js'
 import dotenv from 'dotenv'
@@ -135,6 +135,66 @@ io.on('connection', async (socket) => {
     // (optional) notify admin later
   } catch (error) {
     console.error('Report error:', error.message)
+  }
+  })
+
+  socket.on('edit_message', async ({ messageId, newContent }) => {
+  try {
+    const userId = socket.userId
+
+    console.log('EDIT EVENT HIT ✅', { messageId, newContent, userId })
+
+    const updatedMessage = await editMessage(messageId, newContent, userId)
+
+    console.log('DB RESULT:', updatedMessage)
+
+    if (!updatedMessage) return
+
+    const receiverId = updatedMessage.receiver_id
+
+    // send to receiver
+    const receiverSockets = onlineUsers.get(receiverId)
+    if (receiverSockets) {
+      receiverSockets.forEach((id) => {
+        io.to(id).emit('message_edited', updatedMessage)
+      })
+    }
+
+    // send to sender
+    socket.emit('message_edited', updatedMessage)
+
+  } catch (error) {
+    console.error('Edit message error:', error.message)
+  }
+  })
+
+  socket.on('delete_message', async ({ messageId }) => {
+  try {
+    const userId = socket.userId
+    console.log('DELETE EVENT HIT ✅', { messageId, userId })
+    const deletedMessage = await deleteMessage(messageId, userId)
+    console.log('DB RESULT:', deletedMessage)  
+    
+    if (!deletedMessage) {
+      console.log('❌ No message deleted')
+      return
+    }
+
+    const receiverId = deletedMessage.receiver_id
+
+    // send to receiver
+    const receiverSockets = onlineUsers.get(receiverId)
+    if (receiverSockets) {
+      receiverSockets.forEach((id) => {
+        io.to(id).emit('message_deleted', deletedMessage)
+      })
+    }
+
+    // send to sender
+    socket.emit('message_deleted', deletedMessage)
+
+  } catch (error) {
+    console.error('Delete message error:', error.message)
   }
   })
 
