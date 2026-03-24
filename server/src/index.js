@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser'
 import authRoutes from './routes/auth.routes.js'
 import { updateUserOnlineStatus } from './models/user.model.js'
 import { createMessage } from './models/message.model.js'
+import { createReport } from './models/report.model.js'
 import dotenv from 'dotenv'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -116,7 +117,24 @@ io.on('connection', async (socket) => {
         console.error('Send message error:', error.message)
     }
   })
+  
+  socket.on('report_message', async ({ messageId, reason }) => {
+  try {
+    const userId = socket.userId
 
+    const report = await createReport({
+      message_id: messageId,
+      reported_by: userId,
+      reason,
+    })
+
+    console.log('Message reported:', report.id)
+
+    // (optional) notify admin later
+  } catch (error) {
+    console.error('Report error:', error.message)
+  }
+  })
 
   socket.on('disconnect', async () => {
     console.log('User disconnected:', userId)
