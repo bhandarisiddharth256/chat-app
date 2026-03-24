@@ -6,6 +6,7 @@ import cors from "cors"
 import cookieParser from 'cookie-parser'
 import authRoutes from './routes/auth.routes.js'
 import { updateUserOnlineStatus } from './models/user.model.js'
+import { createMessage } from './models/message.model.js'
 import dotenv from 'dotenv'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -87,6 +88,35 @@ io.on('connection', async (socket) => {
   }
 
   io.emit('online_users', Array.from(onlineUsers.keys()))
+   
+  socket.on('send_message', async ({ receiverId, content }) => {
+    try {
+        const senderId = socket.userId
+
+        // Save message to DB
+        const message = await createMessage({
+        sender_id: senderId,
+        receiver_id: receiverId,
+        content,
+        })
+
+        // Send to receiver if online
+        const receiverSockets = onlineUsers.get(receiverId)
+
+        if (receiverSockets) {
+        receiverSockets.forEach((socketId) => {
+            io.to(socketId).emit('receive_message', message)
+        })
+        }
+
+        // Also send back to sender (for UI update)
+        socket.emit('receive_message', message)
+
+    } catch (error) {
+        console.error('Send message error:', error.message)
+    }
+  })
+
 
   socket.on('disconnect', async () => {
     console.log('User disconnected:', userId)
