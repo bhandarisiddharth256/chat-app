@@ -9,6 +9,9 @@ import { updateUserOnlineStatus } from './models/user.model.js'
 import { createMessage , editMessage, deleteMessage } from './models/message.model.js'
 import { createReport } from './models/report.model.js'
 import messageRoutes from './routes/message.routes.js'
+import groupRoutes from './routes/group.routes.js'
+import { getGroupMembers } from './models/group.model.js'
+import { createGroupMessage } from './models/message.model.js'
 import dotenv from 'dotenv'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -66,6 +69,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/messages', messageRoutes)
+app.use('/api/groups', groupRoutes)
 
 io.on('connection', async (socket) => {
   const userId = socket.userId
@@ -92,6 +96,49 @@ io.on('connection', async (socket) => {
 
   io.emit('online_users', Array.from(onlineUsers.keys()))
    
+  socket.on('join_groups', async () => {
+    try {
+        const userId = socket.userId
+
+        // Get groups where user is member
+        const pool = getPool()
+        const result = await pool.query(
+        `SELECT group_id FROM group_members WHERE user_id = $1`,
+        [userId]
+        )
+
+        const groups = result.rows
+
+        groups.forEach(({ group_id }) => {
+        socket.join(group_id)
+        })
+
+        console.log(`User ${userId} joined ${groups.length} groups`)
+
+    } catch (error) {
+        console.error('Join groups error:', error.message)
+    }
+  })
+
+  socket.on('send_group_message', async ({ groupId, content }) => {
+    try {
+        const senderId = socket.userId
+
+        // Save to DB
+        const message = await createGroupMessage({
+        sender_id: senderId,
+        group_id: groupId,
+        content,
+        })
+
+        // Emit to all in group
+        io.to(groupId).emit('receive_group_message', message)
+
+    } catch (error) {
+        console.error('Group message error:', error.message)
+    }
+  })
+
   socket.on('send_message', async ({ receiverId, content }) => {
     try {
         const senderId = socket.userId

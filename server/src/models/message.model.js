@@ -59,3 +59,16 @@ export const deleteMessage = async (messageId, userId) => {
   return result.rows[0]
 }
 
+// CREATE GROUP MESSAGE
+export const createGroupMessage = async ({ sender_id, group_id, content }) => {
+  const pool = getPool()
+
+  const result = await pool.query(
+    `INSERT INTO messages (sender_id, group_id, content)
+     VALUES ($1, $2, $3)
+     RETURNING *`,
+    [sender_id, group_id, content]
+  )
+
+  return result.rows[0]
+}
