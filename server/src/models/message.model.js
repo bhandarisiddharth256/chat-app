@@ -1,13 +1,13 @@
 import { getPool } from '../config/db.js'
 
-export const createMessage = async ({ sender_id, receiver_id, content }) => {
+export const createMessage = async ({ sender_id, receiver_id, content, message_type = 'text' }) => {
   const pool = getPool()
 
   const result = await pool.query(
-    `INSERT INTO messages (sender_id, receiver_id, content)
-     VALUES ($1, $2, $3)
+    `INSERT INTO messages (sender_id, receiver_id, content, message_type)
+     VALUES ($1, $2, $3, $4)
      RETURNING *`,
-    [sender_id, receiver_id, content]
+    [sender_id, receiver_id, content, message_type]
   )
 
   return result.rows[0]
@@ -60,15 +60,72 @@ export const deleteMessage = async (messageId, userId) => {
 }
 
 // CREATE GROUP MESSAGE
-export const createGroupMessage = async ({ sender_id, group_id, content }) => {
+export const createGroupMessage = async ({ sender_id, group_id, content, message_type = 'text' }) => {
   const pool = getPool()
 
   const result = await pool.query(
-    `INSERT INTO messages (sender_id, group_id, content)
-     VALUES ($1, $2, $3)
+    `INSERT INTO messages (sender_id, group_id, content, message_type)
+     VALUES ($1, $2, $3, $4)
      RETURNING *`,
-    [sender_id, group_id, content]
+    [sender_id, group_id, content, message_type]
   )
 
   return result.rows[0]
 }
+
+// GET CONVERSATIONS
+export const getConversations = async (userId) => {
+  const pool = getPool()
+
+  // 1-to-1 chats
+  const personalChats = await pool.query(
+    `
+    SELECT DISTINCT ON (
+      CASE 
+        WHEN sender_id = $1 THEN receiver_id 
+        ELSE sender_id 
+      END
+    )
+      id,
+      content,
+      message_type,
+      created_at,
+      sender_id,
+      receiver_id
+    FROM messages
+    WHERE sender_id = $1 OR receiver_id = $1
+    ORDER BY 
+      CASE 
+        WHEN sender_id = $1 THEN receiver_id 
+        ELSE sender_id 
+      END,
+      created_at DESC
+    `,
+    [userId]
+  )
+
+  // group chats
+  const groupChats = await pool.query(
+    `
+    SELECT DISTINCT ON (m.group_id)
+      m.id,
+      m.content,
+      m.message_type,
+      m.created_at,
+      m.group_id,
+      g.name AS group_name
+    FROM messages m
+    JOIN groups g ON m.group_id = g.id
+    JOIN group_members gm ON gm.group_id = g.id
+    WHERE gm.user_id = $1
+    ORDER BY m.group_id, m.created_at DESC
+    `,
+    [userId]
+  )
+
+  return {
+    personal: personalChats.rows,
+    groups: groupChats.rows
+  }
+}
+

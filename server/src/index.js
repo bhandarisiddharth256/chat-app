@@ -11,7 +11,9 @@ import { createReport } from './models/report.model.js'
 import messageRoutes from './routes/message.routes.js'
 import groupRoutes from './routes/group.routes.js'
 import { getGroupMembers } from './models/group.model.js'
+import conversationRoutes from './routes/conversation.routes.js'
 import { createGroupMessage } from './models/message.model.js'
+import uploadRoutes from './routes/upload.routes.js'
 import dotenv from 'dotenv'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -61,6 +63,8 @@ app.use(cors({
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
+app.use('/api/upload', uploadRoutes)
+app.use('/api/conversations', conversationRoutes)
 
 // Health check route
 app.get('/', (req, res) => {
@@ -167,6 +171,55 @@ io.on('connection', async (socket) => {
     }
   })
   
+  socket.on('send_images', async ({ receiverId, imageUrls }) => {
+    try {
+      const senderId = socket.userId
+
+      for (const url of imageUrls) {
+        const message = await createMessage({
+          sender_id: senderId,
+          receiver_id: receiverId,
+          content: url,
+          message_type: 'image',
+        })
+
+        // send to receiver
+        const receiverSockets = onlineUsers.get(receiverId)
+        if (receiverSockets) {
+          receiverSockets.forEach((id) => {
+            io.to(id).emit('receive_message', message)
+          })
+        }
+
+        // send to sender
+        socket.emit('receive_message', message)
+      }
+
+    } catch (error) {
+      console.error('Send images error:', error.message)
+    }
+  })
+
+  socket.on('send_group_images', async ({ groupId, imageUrls }) => {
+    try {
+      const senderId = socket.userId
+
+      for (const url of imageUrls) {
+        const message = await createGroupMessage({
+          sender_id: senderId,
+          group_id: groupId,
+          content: url,
+          message_type: 'image',
+        })
+
+        io.to(groupId).emit('receive_group_message', message)
+      }
+
+    } catch (error) {
+      console.error('Group image error:', error.message)
+    }
+  })
+
   socket.on('report_message', async ({ messageId, reason }) => {
   try {
     const userId = socket.userId
