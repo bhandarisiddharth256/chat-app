@@ -54,3 +54,17 @@ export const isGroupAdmin = async (group_id, user_id) => {
 
   return result.rows[0].role === 'admin'
 }
+
+// REMOVE MEMBER
+export const removeGroupMember = async (group_id, user_id) => {
+  const pool = getPool()
+
+  const result = await pool.query(
+    `DELETE FROM group_members
+     WHERE group_id = $1 AND user_id = $2
+     RETURNING *`,
+    [group_id, user_id]
+  )
+
+  return result.rows[0]
+}

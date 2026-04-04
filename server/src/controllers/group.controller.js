@@ -1,4 +1,4 @@
-import { createGroup, addGroupMember , isGroupAdmin } from '../models/group.model.js'
+import { createGroup, addGroupMember , isGroupAdmin , removeGroupMember} from '../models/group.model.js'
 import { getPool } from '../config/db.js'
 // CREATE GROUP
 export const createGroupHandler = async (req, res) => {
@@ -46,13 +46,6 @@ export const createGroupHandler = async (req, res) => {
 export const addMemberHandler = async (req, res) => {
   try {
     const { groupId, userIdToAdd } = req.body
-    const userId = req.userId
-
-    // Check admin
-    const isAdmin = await isGroupAdmin(groupId, userId)
-    if (!isAdmin) {
-      return res.status(403).json({ message: 'Only admin can add members' })
-    }
 
     const member = await addGroupMember({
       group_id: groupId,
@@ -95,6 +88,40 @@ export const renameGroupHandler = async (req, res) => {
 
   } catch (error) {
     console.error('Rename error:', error.message)
+    return res.status(500).json({ message: 'Internal server error' })
+  }
+}
+
+// REMOVE MEMBER (ADMIN ONLY)
+export const removeMemberHandler = async (req, res) => {
+  try {
+    const { groupId, userIdToRemove } = req.body
+    const userId = req.userId
+
+    // Check admin
+    const isAdmin = await isGroupAdmin(groupId, userId)
+    if (!isAdmin) {
+      return res.status(403).json({ message: 'Only admin can remove members' })
+    }
+
+    // Prevent removing self (optional safety)
+    if (userId === userIdToRemove) {
+      return res.status(400).json({ message: 'Admin cannot remove themselves' })
+    }
+
+    const removed = await removeGroupMember(groupId, userIdToRemove)
+
+    if (!removed) {
+      return res.status(404).json({ message: 'Member not found' })
+    }
+
+    return res.status(200).json({
+      message: 'Member removed successfully',
+      removed,
+    })
+
+  } catch (error) {
+    console.error('Remove member error:', error.message)
     return res.status(500).json({ message: 'Internal server error' })
   }
 }
