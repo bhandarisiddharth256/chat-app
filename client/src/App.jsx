@@ -6,7 +6,7 @@ function App() {
   const fetchUser = useAuthStore((state) => state.fetchUser);
 
   useEffect(() => {
-    fetchUser();
+    fetchUser(); // 🔥 restore user on refresh
   }, []);
 
   return <AppRoutes />;

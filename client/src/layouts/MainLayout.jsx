@@ -10,7 +10,7 @@ const MainLayout = () => {
       </div>
 
       {/* Chat Area */}
-      <div className="w-[70%]">
+      <div className="flex-1">
         <ChatWindow />
       </div>
     </div>

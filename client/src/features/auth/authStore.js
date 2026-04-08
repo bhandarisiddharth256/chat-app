@@ -1,25 +1,22 @@
 import { create } from "zustand";
 import {
-  loginUser,
-  registerUser,
-  logoutUser,
-  getMe,
-} from "../../api/auth.api";
+  loginService,
+  registerService,
+  getMeService,
+  logoutService,
+} from "../../services/auth.service";
+
+import { socket } from "../../app/socket";
 
 export const useAuthStore = create((set) => ({
   user: null,
   loading: false,
+  authLoading: true, // 🔥 important
 
-  // LOGIN
   login: async (data) => {
     set({ loading: true });
     try {
-      const res = await loginUser(data);
-
-      const { user, accessToken } = res.data;
-
-      localStorage.setItem("accessToken", accessToken);
-
+      const user = await loginService(data);
       set({ user, loading: false });
     } catch (err) {
       set({ loading: false });
@@ -27,16 +24,10 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  // REGISTER
   register: async (data) => {
     set({ loading: true });
     try {
-      const res = await registerUser(data);
-
-      const { user, accessToken } = res.data;
-
-      localStorage.setItem("accessToken", accessToken);
-
+      const user = await registerService(data);
       set({ user, loading: false });
     } catch (err) {
       set({ loading: false });
@@ -44,25 +35,26 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  // LOGOUT
-  logout: async () => {
-    try {
-      await logoutUser(); // clears refresh token cookie
-    } catch (err) {
-      console.log("Logout API failed");
+  fetchUser: async () => {
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      set({ user: null, authLoading: false });
+      return;
     }
 
+    try {
+      const user = await getMeService();
+      set({ user, authLoading: false });
+    } catch (err) {
+      localStorage.removeItem("accessToken");
+      set({ user: null, authLoading: false });
+    }
+  },
+
+  logout: async () => {
     localStorage.removeItem("accessToken");
     set({ user: null });
   },
-
-  // FETCH CURRENT USER
-  fetchUser: async () => {
-    try {
-      const res = await getMe();
-      set({ user: res.data });
-    } catch (err) {
-      set({ user: null });
-    }
-  },
+  
 }));

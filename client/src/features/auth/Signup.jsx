@@ -3,7 +3,7 @@ import { useAuthStore } from "./authStore";
 import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
-  const { register } = useAuthStore();
+  const { register, loading } = useAuthStore();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -23,47 +23,49 @@ const Signup = () => {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center">
+    <div className="flex h-screen items-center justify-center bg-gray-100">
       <form
         onSubmit={handleSubmit}
-        className="p-6 border rounded w-80 space-y-4"
+        className="bg-white p-6 rounded-xl shadow w-80"
       >
-        <h2 className="text-xl font-semibold text-center">Signup</h2>
+        <h2 className="text-xl font-bold mb-4">Signup</h2>
 
         <input
           type="text"
-          placeholder="Name"
-          className="w-full p-2 border rounded"
-          onChange={(e) => setForm({ ...form, username: e.target.value })}
+          placeholder="Username"
+          className="w-full mb-3 p-2 border rounded"
+          value={form.username}
+          onChange={(e) =>
+            setForm({ ...form, username: e.target.value })
+          }
         />
 
         <input
           type="email"
           placeholder="Email"
-          className="w-full p-2 border rounded"
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          className="w-full mb-3 p-2 border rounded"
+          value={form.email}
+          onChange={(e) =>
+            setForm({ ...form, email: e.target.value })
+          }
         />
 
         <input
           type="password"
           placeholder="Password"
-          className="w-full p-2 border rounded"
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          className="w-full mb-3 p-2 border rounded"
+          value={form.password}
+          onChange={(e) =>
+            setForm({ ...form, password: e.target.value })
+          }
         />
 
-        <button className="w-full bg-green-500 text-white p-2 rounded">
-          Signup
+        <button
+          type="submit"
+          className="w-full bg-green-500 text-white py-2 rounded"
+        >
+          {loading ? "Loading..." : "Signup"}
         </button>
-
-        <p className="text-sm text-center">
-          Already have an account?{" "}
-          <span
-            className="text-green-500 cursor-pointer"
-            onClick={() => navigate("/login")}
-          >
-            Login
-          </span>
-        </p>
       </form>
     </div>
   );
