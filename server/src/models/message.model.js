@@ -77,55 +77,37 @@ export const createGroupMessage = async ({ sender_id, group_id, content, message
 export const getConversations = async (userId) => {
   const pool = getPool()
 
-  // 1-to-1 chats
-  const personalChats = await pool.query(
+  const result = await pool.query(
     `
-    SELECT DISTINCT ON (
-      CASE 
-        WHEN sender_id = $1 THEN receiver_id 
-        ELSE sender_id 
-      END
-    )
-      id,
-      content,
-      message_type,
-      created_at,
-      sender_id,
-      receiver_id
-    FROM messages
-    WHERE sender_id = $1 OR receiver_id = $1
-    ORDER BY 
-      CASE 
-        WHEN sender_id = $1 THEN receiver_id 
-        ELSE sender_id 
-      END,
-      created_at DESC
-    `,
-    [userId]
-  )
-
-  // group chats
-  const groupChats = await pool.query(
-    `
-    SELECT DISTINCT ON (m.group_id)
-      m.id,
+    SELECT DISTINCT ON (u.id)
+      u.id,
+      u.username,
       m.content,
       m.message_type,
-      m.created_at,
-      m.group_id,
-      g.name AS group_name
-    FROM messages m
-    JOIN groups g ON m.group_id = g.id
-    JOIN group_members gm ON gm.group_id = g.id
-    WHERE gm.user_id = $1
-    ORDER BY m.group_id, m.created_at DESC
+      m.created_at
+    FROM users u
+    LEFT JOIN messages m 
+      ON (
+        (m.sender_id = $1 AND m.receiver_id = u.id)
+        OR
+        (m.sender_id = u.id AND m.receiver_id = $1)
+      )
+    WHERE u.id != $1
+    ORDER BY u.id, m.created_at DESC;
     `,
     [userId]
   )
 
-  return {
-    personal: personalChats.rows,
-    groups: groupChats.rows
-  }
+  return result.rows.map((row) => ({
+    id: row.id,
+    name: row.username,
+    last_message: row.content
+      ? {
+          content: row.content,
+          message_type: row.message_type,
+          created_at: row.created_at,
+        }
+      : null,
+  }))
 }
 

@@ -9,6 +9,7 @@ import { updateUserOnlineStatus } from './models/user.model.js'
 import { createMessage , editMessage, deleteMessage } from './models/message.model.js'
 import { createReport } from './models/report.model.js'
 import messageRoutes from './routes/message.routes.js'
+import userRoutes from './routes/user.routes.js'
 import groupRoutes from './routes/group.routes.js'
 import { getGroupMembers } from './models/group.model.js'
 import conversationRoutes from './routes/conversation.routes.js'
@@ -74,6 +75,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/groups', groupRoutes)
+app.use("/api/users", userRoutes);
 
 io.on('connection', async (socket) => {
   const userId = socket.userId

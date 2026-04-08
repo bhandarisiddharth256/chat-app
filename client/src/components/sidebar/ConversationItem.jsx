@@ -1,17 +1,21 @@
 const ConversationItem = ({ chat, isActive, onClick }) => {
+  const lastMessage = chat.last_message;
+
   return (
     <div
       onClick={onClick}
-      className={`p-3 cursor-pointer border-b hover:bg-gray-100 ${
-        isActive ? "bg-gray-200" : ""
+      className={`p-3 border-b cursor-pointer ${
+        isActive ? "bg-gray-200" : "hover:bg-gray-100"
       }`}
     >
-      <div className="font-semibold">
-        {chat.is_group ? chat.name : chat.name}
-      </div>
+      <div className="font-semibold">{chat.name}</div>
 
       <div className="text-sm text-gray-500 truncate">
-        {chat.last_message?.content || "No messages yet"}
+        {lastMessage
+          ? lastMessage.message_type === "image"
+            ? "📷 Image"
+            : lastMessage.content
+          : "Start conversation"}
       </div>
     </div>
   );

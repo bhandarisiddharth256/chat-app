@@ -1,15 +1,32 @@
 import { useEffect, useRef } from "react";
 import { useChatStore } from "../../features/chat/chatStore";
+import { useAuthStore } from "../../features/auth/authStore";
 import MessageBubble from "./MessageBubble";
+import MessageInput from "./MessageInput";
+import { getSocket } from "../../app/socket";
 
 const ChatWindow = () => {
-  const { selectedChat, messages } = useChatStore();
+  const { selectedChat, messages, listenToMessages } = useChatStore();
+  const user = useAuthStore((state) => state.user);
+
   const bottomRef = useRef();
 
-  // 🔥 auto scroll
+  // ✅ Auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // ✅ Listen to socket messages (with cleanup)
+  useEffect(() => {
+    if (!user) return;
+
+    listenToMessages(user.id);
+
+    return () => {
+      const socket = getSocket();
+      socket?.off("receive_message"); // 🔥 prevent duplicate listeners
+    };
+  }, [user, listenToMessages]);
 
   return (
     <div className="h-full flex flex-col">
@@ -29,12 +46,7 @@ const ChatWindow = () => {
 
       {/* Input */}
       <div className="p-4 border-t">
-        <input
-          type="text"
-          placeholder="Type a message..."
-          className="w-full p-2 border rounded"
-          disabled={!selectedChat}
-        />
+        {selectedChat && <MessageInput />}
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ import {
   logoutService,
 } from "../../services/auth.service";
 
-import { socket } from "../../app/socket";
+import { connectSocket } from "../../app/socket";
 
 export const useAuthStore = create((set) => ({
   user: null,
@@ -17,6 +17,10 @@ export const useAuthStore = create((set) => ({
     set({ loading: true });
     try {
       const user = await loginService(data);
+
+      const token = localStorage.getItem("accessToken");
+      connectSocket(token); // 🔥 connect here
+
       set({ user, loading: false });
     } catch (err) {
       set({ loading: false });
@@ -56,5 +60,5 @@ export const useAuthStore = create((set) => ({
     localStorage.removeItem("accessToken");
     set({ user: null });
   },
-  
+
 }));
